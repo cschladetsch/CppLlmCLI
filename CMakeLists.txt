@@ -24,18 +24,33 @@ add_subdirectory(external)
 
 find_package(Threads REQUIRED)
 
+# Enable SSL support for httplib
 if(WIN32)
+    # OpenSSL is handled by external/CMakeLists.txt
+    add_compile_definitions(CPPHTTPLIB_OPENSSL_SUPPORT)
+    message(STATUS "Configuring with OpenSSL support for HTTPS")
+else()
     find_package(OpenSSL QUIET)
+    if(OpenSSL_FOUND)
+        message(STATUS "OpenSSL found: ${OPENSSL_VERSION}")
+        add_compile_definitions(CPPHTTPLIB_OPENSSL_SUPPORT)
+    endif()
 endif()
 
 set(SOURCES
     src/main.cpp
     src/repl/repl.cpp
     src/llm/groq_service.cpp
-    src/http/http_client.cpp
     src/utils/config.cpp
     src/models/conversation.cpp
 )
+
+# Use native Windows HTTP client on Windows, otherwise use httplib
+if(WIN32)
+    list(APPEND SOURCES src/http/windows_http_client.cpp)
+else()
+    list(APPEND SOURCES src/http/http_client.cpp)
+endif()
 
 set(HEADERS
     src/repl/repl.hpp
@@ -55,20 +70,20 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     nlohmann_json
-    httplib
     CLI11
     fmt
+    spdlog::spdlog
     Threads::Threads
 )
 
+# Link httplib only on non-Windows platforms
+if(NOT WIN32)
+    target_link_libraries(${PROJECT_NAME} PRIVATE httplib)
+endif()
+
 if(WIN32)
-    if(OpenSSL_FOUND)
-        target_link_libraries(${PROJECT_NAME} PRIVATE
-            OpenSSL::SSL
-            OpenSSL::Crypto
-        )
-    endif()
-    target_link_libraries(${PROJECT_NAME} PRIVATE ws2_32)
+    # Windows libraries for networking
+    target_link_libraries(${PROJECT_NAME} PRIVATE ws2_32 winhttp)
 endif()
 
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)

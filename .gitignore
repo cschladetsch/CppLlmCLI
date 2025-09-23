@@ -11,7 +11,12 @@ Makefile
 *.cmake
 
 # External dependencies
-external/
+external/downloads/
+external/_deps/
+external/openssl*/
+external/*.zip
+external/*.tar.gz
+external/*.tar.xz
 
 # IDE files
 .vscode/

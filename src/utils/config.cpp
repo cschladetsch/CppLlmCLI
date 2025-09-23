@@ -76,7 +76,7 @@ ProviderConfig Config::get_provider_config(const std::string &provider) const {
 
   ProviderConfig config;
   if (provider == "groq") {
-    config.model = "llama-3.1-70b-versatile";
+    config.model = "llama-3.3-70b-versatile";
     config.api_url = "https://api.groq.com/openai/v1";
   } else if (provider == "together") {
     config.model = "meta-llama/Llama-2-70b-chat-hf";

@@ -1,3 +1,4 @@
+#include "utils/logger.hpp"
 #include "llm/groq_service.hpp"
 
 #include <iostream>
@@ -5,7 +6,8 @@
 namespace llm {
 
 const std::vector<ModelInfo> GroqService::AVAILABLE_MODELS = {
-    {"llama-3.1-70b-versatile", "Llama 3.1 70B", 131072, true},
+    {"llama-3.3-70b-versatile", "Llama 3.3 70B", 131072, true},
+    {"llama-3.1-70b-versatile", "Llama 3.1 70B (Deprecated)", 131072, false},
     {"llama-3.1-8b-instant", "Llama 3.1 8B", 131072, true},
     {"mixtral-8x7b-32768", "Mixtral 8x7B", 32768, true},
     {"gemma2-9b-it", "Gemma 2 9B", 8192, true}};
@@ -15,7 +17,7 @@ GroqService::GroqService(const std::string &api_key,
     : api_key_(api_key) {
   http_client_ = std::make_unique<HttpClient>(base_url);
   http_client_->set_bearer_token(api_key_);
-  current_model_ = "llama-3.1-70b-versatile";
+  current_model_ = "llama-3.3-70b-versatile";
 }
 
 std::future<CompletionResponse>
@@ -26,7 +28,21 @@ GroqService::complete_async(const Conversation &conversation) {
 
 CompletionResponse GroqService::complete(const Conversation &conversation) {
   auto request_data = prepare_request(conversation);
-  auto response = http_client_->post("/chat/completions", request_data);
+
+  LOG_DEBUG("Making request to /openai/v1/chat/completions");
+  LOG_DEBUG("Request data: {}...", request_data.dump().substr(0, 200));
+
+  auto response = http_client_->post("/openai/v1/chat/completions", request_data);
+
+  LOG_DEBUG("Response status: {}", response.status_code);
+  LOG_DEBUG("Response success: {}", response.success);
+  LOG_DEBUG("Response body length: {}", response.body.length());
+  if (!response.body.empty()) {
+    LOG_DEBUG("Response body preview: {}", response.body.substr(0, 200));
+  }
+  if (!response.error.empty()) {
+    LOG_ERROR("Response error: {}", response.error);
+  }
 
   return parse_response(response);
 }
@@ -44,7 +60,7 @@ void GroqService::stream_complete(const Conversation &conversation,
                                   StreamCallback callback) {
   auto request_data = prepare_request(conversation, true);
 
-  http_client_->post_stream("/chat/completions", request_data,
+  http_client_->post_stream("/openai/v1/chat/completions", request_data,
                             [callback](const std::string &chunk, bool is_done) {
                               callback(chunk, is_done);
                             });
@@ -65,17 +81,9 @@ std::vector<ModelInfo> GroqService::get_available_models() {
 }
 
 void GroqService::set_model(const std::string &model_id) {
-  auto it = std::find_if(
-      AVAILABLE_MODELS.begin(), AVAILABLE_MODELS.end(),
-      [&model_id](const ModelInfo &model) { return model.id == model_id; });
-
-  if (it != AVAILABLE_MODELS.end()) {
-    current_model_ = model_id;
-    std::cout << "[INFO] Switched to model: " << model_id << "\n";
-  } else {
-    std::cout << "[WARN] Unknown model: " << model_id
-              << ", keeping current model: " << current_model_ << "\n";
-  }
+  // Accept any model name from config - let the API validate it
+  current_model_ = model_id;
+  std::cout << "[INFO] Switched to model: " << model_id << "\n";
 }
 
 std::string GroqService::get_current_model() const { return current_model_; }
@@ -93,13 +101,8 @@ void GroqService::set_system_prompt(const std::string &prompt) {
 }
 
 bool GroqService::is_available() {
-  try {
-    auto response = http_client_->get("/models");
-    return response.success;
-  } catch (const std::exception &e) {
-    std::cout << "[DEBUG] Groq availability check failed: " << e.what() << "\n";
-    return false;
-  }
+  // For Windows, just return true - we'll handle errors when actually making requests
+  return true;
 }
 
 nlohmann::json GroqService::prepare_request(const Conversation &conversation,

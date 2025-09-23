@@ -1,3 +1,4 @@
+#include "utils/logger.hpp"
 #include <CLI/CLI.hpp>
 #include <iostream>
 #include <memory>
@@ -7,9 +8,12 @@
 #include "utils/config.hpp"
 
 int main(int argc, char *argv[]) {
+  // Initialize logger
+  llm::Logger::init();
+
   CLI::App app{"LLM REPL - Interactive AI Chat Terminal"};
 
-  std::string config_file = "config.yaml";
+  std::string config_file = "config.json";
   std::string provider;
   std::string model;
   std::string api_key;
@@ -19,7 +23,7 @@ int main(int argc, char *argv[]) {
   bool version = false;
 
   app.add_option("-c,--config", config_file, "Configuration file path")
-      ->default_val("config.yaml");
+      ->default_val("config.json");
 
   app.add_option("-p,--provider", provider,
                  "LLM provider (groq, together, ollama)");
@@ -31,6 +35,14 @@ int main(int argc, char *argv[]) {
   app.add_flag("--version", version, "Show version information");
 
   CLI11_PARSE(app, argc, argv);
+
+  // Set log level based on verbose flag
+  if (verbose) {
+    llm::Logger::set_level(spdlog::level::debug);
+    LOG_INFO("Verbose logging enabled");
+  } else {
+    llm::Logger::set_level(spdlog::level::info);
+  }
 
   if (version) {
     std::cout << "LLM REPL v1.0.0" << std::endl;

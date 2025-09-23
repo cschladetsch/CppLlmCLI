@@ -5,6 +5,7 @@
 #include <csignal>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <sstream>
 #include <thread>
 
@@ -114,8 +115,23 @@ void REPL::print_help() {
 
 std::string REPL::read_input() {
   std::cout << colorize_text(config_->get_repl_config().prompt_prefix, "blue");
+  std::cout.flush();
+
   std::string input;
-  std::getline(std::cin, input);
+  if (!std::getline(std::cin, input)) {
+    // Check if we've reached EOF or if cin is in a bad state
+    if (std::cin.eof()) {
+      std::cout << std::endl << colorize_text("EOF detected. Exiting...", "yellow") << std::endl;
+      running_ = false;
+      return "";
+    }
+
+    // Clear error flags and try again
+    std::cin.clear();
+    std::cin.ignore((std::numeric_limits<std::streamsize>::max)(), '\n');
+    return "";
+  }
+
   return input;
 }
 

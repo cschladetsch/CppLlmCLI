@@ -49,7 +49,10 @@ HttpClient::Response HttpClient::post(const std::string &endpoint,
                                 "application/json");
 
     if (!result) {
-      return {0, "", {}, false, "Connection failed"};
+      auto err = httplib::to_string(result.error());
+      std::cout << "[DEBUG] HTTP Post failed: " << err << "\n";
+      std::cout << "[DEBUG] URL: " << base_url_ << endpoint << "\n";
+      return {0, "", {}, false, "Connection failed: " + err};
     }
 
     Response response;
@@ -84,7 +87,10 @@ HttpClient::Response HttpClient::get(const std::string &endpoint,
     auto result = client_->Get(endpoint, httplib_headers);
 
     if (!result) {
-      return {0, "", {}, false, "Connection failed"};
+      auto err = httplib::to_string(result.error());
+      std::cout << "[DEBUG] HTTP Post failed: " << err << "\n";
+      std::cout << "[DEBUG] URL: " << base_url_ << endpoint << "\n";
+      return {0, "", {}, false, "Connection failed: " + err};
     }
 
     Response response;

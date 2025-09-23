@@ -1,6 +1,6 @@
 #pragma once
 
-#include <httplib.h>
+// httplib not needed for Windows build
 
 #include <functional>
 #include <future>
@@ -43,11 +43,11 @@ public:
 
   void set_bearer_token(const std::string &token);
   void set_timeout(size_t seconds);
-  void set_retry_count(size_t count) { retry_count_ = count; }
-  void set_retry_delay(size_t milliseconds) { retry_delay_ms_ = milliseconds; }
+  void set_retry_count(size_t count);
+  void set_retry_delay(size_t milliseconds);
 
 private:
-  std::unique_ptr<httplib::Client> client_;
+  // httplib client not needed for Windows
   std::string base_url_;
   std::optional<std::string> bearer_token_;
   size_t timeout_sec_;
