@@ -1,0 +1,53 @@
+# Build directories
+build/
+bin/
+lib/
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+
+# External dependencies
+external/
+
+# IDE files
+.vscode/
+.vs/
+*.user
+*.vcxproj.user
+
+# Compiled object files
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Configuration files with secrets
+config_local.yaml
+*.key
+*.pem
+
+# Log files
+*.log
+
+# Temporary files
+*.tmp
+*.swp
+*~
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Test artifacts
+test_results/
+coverage/
+
+# Package manager
+conan_cache/
+vcpkg_installed/
