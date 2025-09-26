@@ -2,6 +2,32 @@
 
 A modern C++20 REPL (Read-Eval-Print-Loop) for interacting with various Large Language Model providers including Groq, OpenAI, Anthropic, and Ollama.
 
+## Architecture
+
+```mermaid
+graph TD
+    A[User Input] --> B[REPL Interface]
+    B --> C[Command Parser]
+    C --> D[LLM Service Factory]
+    D --> E[HTTP Client]
+
+    D --> F[Groq Service]
+    D --> G[OpenAI Service]
+    D --> H[Anthropic Service]
+    D --> I[Ollama Service]
+
+    E --> J[External APIs]
+    F --> E
+    G --> E
+    H --> E
+    I --> K[Local Ollama]
+
+    L[Config Manager] --> D
+    M[Conversation History] --> B
+    N[Logger] --> B
+    N --> D
+```
+
 ## Features
 
 - Support for multiple LLM providers (Groq, OpenAI, Anthropic, Ollama)
