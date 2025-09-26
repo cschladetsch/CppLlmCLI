@@ -18,6 +18,7 @@ def main():
     parser.add_argument("--clean", action="store_true", help="Clean build directory first")
     parser.add_argument("--debug", action="store_true", help="Build in debug mode")
     parser.add_argument("--jobs", "-j", type=int, default=None, help="Number of parallel jobs")
+    parser.add_argument("--run", action="store_true", help="Run the application after building")
 
     args = parser.parse_args()
 
@@ -54,7 +55,19 @@ def main():
         print("Build failed!")
         return 1
 
-    print(f"Build successful! Executable: {build_dir}/llm-repl")
+    executable_path = build_dir / "llm-repl"
+    print(f"Build successful! Executable: {executable_path}")
+
+    # Run the application if requested
+    if args.run:
+        print("\nRunning application...")
+        if executable_path.exists():
+            run_cmd = [str(executable_path)]
+            subprocess.run(run_cmd, cwd=project_root)
+        else:
+            print(f"Executable not found: {executable_path}")
+            return 1
+
     return 0
 
 if __name__ == "__main__":

@@ -1,7 +1,5 @@
 #pragma once
 
-// httplib not needed for Windows build
-
 #include <functional>
 #include <future>
 #include <map>
@@ -9,6 +7,10 @@
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
+
+#ifndef WIN32
+#include <httplib.h>
+#endif
 
 namespace llm {
 
@@ -47,12 +49,15 @@ public:
   void set_retry_delay(size_t milliseconds);
 
 private:
-  // httplib client not needed for Windows
   std::string base_url_;
   std::optional<std::string> bearer_token_;
   size_t timeout_sec_;
   size_t retry_count_ = 3;
   size_t retry_delay_ms_ = 1000;
+
+#ifndef WIN32
+  std::unique_ptr<httplib::Client> client_;
+#endif
 
   Headers prepare_headers(const Headers &custom_headers) const;
   Response make_request_with_retry(std::function<Response()> request_fn);
