@@ -6,6 +6,7 @@
 #include "llm/groq_service.hpp"
 #include "repl/repl.hpp"
 #include "utils/config.hpp"
+#include "utils/logger.hpp"
 
 int main(int argc, char *argv[]) {
   // Initialize logger
@@ -51,9 +52,11 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  // Verbose mode - using std::cout instead of spdlog
+  // Initialize logger with color output to stdout
+  llm::Logger::init(verbose, verbose ? "llm-repl.log" : "");
+
   if (verbose) {
-    std::cout << "[DEBUG] Verbose mode enabled\n";
+    spdlog::debug("Verbose mode enabled");
   }
 
   try {
@@ -78,13 +81,13 @@ int main(int argc, char *argv[]) {
       std::cerr << "  1. Command line: --api-key YOUR_KEY" << std::endl;
       std::cerr << "  2. Environment variable: GROQ_API_KEY, TOGETHER_API_KEY"
                 << std::endl;
-      std::cerr << "  3. Configuration file: config.yaml" << std::endl;
+      std::cerr << "  3. Configuration file: config.json" << std::endl;
       return 1;
     }
 
     auto repl = std::make_unique<llm::REPL>(std::move(config));
 
-    std::cout << "[INFO] Starting LLM REPL...\n";
+    spdlog::info("Starting LLM REPL...");
     repl->run();
 
   } catch (const std::exception &e) {

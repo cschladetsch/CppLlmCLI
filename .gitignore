@@ -1,9 +1,12 @@
 .claude
 
+.claude
+
 # Build directories
 build/
-bin/
-lib/
+cmake-build-*/
+out/
+.cache/
 
 # CMake generated files
 CMakeCache.txt
@@ -20,41 +23,73 @@ external/*.zip
 external/*.tar.gz
 external/*.tar.xz
 
+# Configuration files (user-specific)
+config.json
+*.key
+*.env
+.env
+
 # IDE files
 .vscode/
-.vs/
-*.user
-*.vcxproj.user
+.idea/
+*.swp
+*.swo
+*~
 
-# Compiled object files
+# Compiled Object files
+*.slo
+*.lo
 *.o
 *.obj
-*.exe
-*.dll
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
 *.so
 *.dylib
+*.dll
 
-# Configuration files with secrets
-config_local.yaml
-*.key
-*.pem
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+llm-repl
 
 # Log files
 *.log
+llm-repl.log
 
-# Temporary files
-*.tmp
-*.swp
-*~
+# History files
+.llm_history
 
-# OS specific
+# OS files
 .DS_Store
 Thumbs.db
 
-# Test artifacts
-test_results/
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Test coverage
+*.gcov
+*.gcda
+*.gcno
+coverage.info
 coverage/
 
 # Package manager
 conan_cache/
 vcpkg_installed/
+
+# Documentation
+docs/_build/
+doxygen/

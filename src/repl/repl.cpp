@@ -10,6 +10,7 @@
 #include <thread>
 
 #include "llm/groq_service.hpp"
+#include "utils/logger.hpp"
 
 #ifdef _WIN32
 #include <io.h>
@@ -27,12 +28,22 @@ REPL::REPL(std::unique_ptr<Config> config) : config_(std::move(config)) {
   instance_ = this;
   setup_signal_handlers();
 
+  spdlog::debug("REPL initialization starting...");
+  spdlog::debug("Provider: {}", config_->get_provider());
+
   auto provider_config = config_->get_provider_config(config_->get_provider());
   conversation_.set_system_prompt(config_->get_repl_config().system_prompt);
 
   if (config_->get_provider() == "groq") {
-    llm_service_ = std::make_unique<GroqService>(config_->get_api_key(),
-                                                 provider_config.api_url);
+    std::string api_key = config_->get_api_key();
+    spdlog::debug("Creating GroqService with:");
+    spdlog::debug("  API URL: {}", provider_config.api_url);
+    spdlog::debug("  Model: {}", provider_config.model);
+    spdlog::debug("  Temperature: {}", provider_config.temperature);
+    spdlog::debug("  Max tokens: {}", provider_config.max_tokens);
+    spdlog::debug("  API Key loaded: {}", api_key.empty() ? "NO (EMPTY!)" : "YES");
+
+    llm_service_ = std::make_unique<GroqService>(api_key, provider_config.api_url);
     llm_service_->set_model(provider_config.model);
     llm_service_->set_temperature(provider_config.temperature);
     llm_service_->set_max_tokens(provider_config.max_tokens);
@@ -47,7 +58,15 @@ REPL::~REPL() {
 }
 
 void REPL::run() {
-  if (!llm_service_ || !llm_service_->is_available()) {
+  if (!llm_service_) {
+    spdlog::error("LLM service was not created!");
+    std::cerr << colorize_text("Error: LLM service was not created!", "red") << std::endl;
+    return;
+  }
+
+  spdlog::debug("Checking if LLM service is available...");
+  if (!llm_service_->is_available()) {
+    spdlog::error("Service availability check failed!");
     std::cerr << colorize_text("Error: LLM service is not available. Please "
                                "check your configuration and "
                                "API key.",
@@ -55,6 +74,7 @@ void REPL::run() {
               << std::endl;
     return;
   }
+  spdlog::debug("LLM service is available and ready");
 
   running_ = true;
   print_welcome();

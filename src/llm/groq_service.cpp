@@ -1,13 +1,13 @@
-#include "utils/logger.hpp"
 #include "llm/groq_service.hpp"
 
 #include <iostream>
+#include "utils/logger.hpp"
 
 namespace llm {
 
 const std::vector<ModelInfo> GroqService::AVAILABLE_MODELS = {
     {"llama-3.3-70b-versatile", "Llama 3.3 70B", 131072, true},
-    {"llama-3.1-70b-versatile", "Llama 3.1 70B (Deprecated)", 131072, false},
+    {"llama-3.1-70b-versatile", "Llama 3.1 70B", 131072, true},
     {"llama-3.1-8b-instant", "Llama 3.1 8B", 131072, true},
     {"mixtral-8x7b-32768", "Mixtral 8x7B", 32768, true},
     {"gemma2-9b-it", "Gemma 2 9B", 8192, true}};
@@ -15,9 +15,20 @@ const std::vector<ModelInfo> GroqService::AVAILABLE_MODELS = {
 GroqService::GroqService(const std::string &api_key,
                          const std::string &base_url)
     : api_key_(api_key) {
+  spdlog::debug("Initializing GroqService...");
+  spdlog::debug("API URL: {}", base_url);
+  spdlog::debug("API Key: {} (length: {})",
+                Logger::safe_api_key(api_key), api_key.length());
+
+  if (api_key.empty()) {
+    spdlog::error("API Key is EMPTY!");
+  }
+
   http_client_ = std::make_unique<HttpClient>(base_url);
   http_client_->set_bearer_token(api_key_);
   current_model_ = "llama-3.3-70b-versatile";
+
+  spdlog::debug("Default model set to: {}", current_model_);
 }
 
 std::future<CompletionResponse>
@@ -27,21 +38,15 @@ GroqService::complete_async(const Conversation &conversation) {
 }
 
 CompletionResponse GroqService::complete(const Conversation &conversation) {
+  spdlog::debug("Preparing completion request...");
   auto request_data = prepare_request(conversation);
 
-  LOG_DEBUG("Making request to /openai/v1/chat/completions");
-  LOG_DEBUG("Request data: {}...", request_data.dump().substr(0, 200));
+  spdlog::debug("Sending POST to /chat/completions...");
+  auto response = http_client_->post("/chat/completions", request_data);
 
-  auto response = http_client_->post("/openai/v1/chat/completions", request_data);
-
-  LOG_DEBUG("Response status: {}", response.status_code);
-  LOG_DEBUG("Response success: {}", response.success);
-  LOG_DEBUG("Response body length: {}", response.body.length());
-  if (!response.body.empty()) {
-    LOG_DEBUG("Response body preview: {}", response.body.substr(0, 200));
-  }
-  if (!response.error.empty()) {
-    LOG_ERROR("Response error: {}", response.error);
+  spdlog::debug("Response received - Status: {}", response.status_code);
+  if (!response.success) {
+    spdlog::error("Request failed: {}", response.error);
   }
 
   return parse_response(response);
@@ -81,9 +86,8 @@ std::vector<ModelInfo> GroqService::get_available_models() {
 }
 
 void GroqService::set_model(const std::string &model_id) {
-  // Accept any model name from config - let the API validate it
   current_model_ = model_id;
-  std::cout << "[INFO] Switched to model: " << model_id << "\n";
+  spdlog::info("Switched to model: {}", model_id);
 }
 
 std::string GroqService::get_current_model() const { return current_model_; }
@@ -101,8 +105,36 @@ void GroqService::set_system_prompt(const std::string &prompt) {
 }
 
 bool GroqService::is_available() {
-  // For Windows, just return true - we'll handle errors when actually making requests
-  return true;
+  spdlog::debug("Checking Groq API availability...");
+
+  try {
+    spdlog::debug("Sending GET request to /models endpoint...");
+    auto response = http_client_->get("/models");
+
+    spdlog::debug("Response status code: {}", response.status_code);
+    spdlog::debug("Response success: {}", response.success);
+
+    if (!response.success) {
+      spdlog::error("API check failed with error: {}", response.error);
+      if (!response.body.empty()) {
+        std::string body_preview = response.body;
+        if (body_preview.length() > 500) {
+          body_preview = body_preview.substr(0, 500) + "...";
+        }
+        spdlog::debug("Response body: {}", body_preview);
+      }
+    } else {
+      spdlog::info("Groq API is available and responding");
+    }
+
+    return response.success;
+  } catch (const std::exception &e) {
+    spdlog::error("Exception during Groq availability check: {}", e.what());
+    return false;
+  } catch (...) {
+    spdlog::error("Unknown exception during Groq availability check");
+    return false;
+  }
 }
 
 nlohmann::json GroqService::prepare_request(const Conversation &conversation,

@@ -96,7 +96,7 @@ install(TARGETS ${PROJECT_NAME}
     RUNTIME DESTINATION bin
 )
 
-install(FILES config.yaml
+install(FILES config.example.json
     DESTINATION etc/${PROJECT_NAME}
 )
 

@@ -5,18 +5,25 @@
 #include <regex>
 #include <sstream>
 #include <thread>
+#include "utils/logger.hpp"
 
 namespace llm {
 
 HttpClient::HttpClient(const std::string &base_url, size_t timeout_sec)
     : base_url_(base_url), timeout_sec_(timeout_sec) {
+  spdlog::debug("HttpClient initializing with URL: {}", base_url);
+  spdlog::debug("Timeout set to: {} seconds", timeout_sec);
+
   client_ = std::make_unique<httplib::Client>(base_url);
   client_->set_connection_timeout(timeout_sec);
   client_->set_read_timeout(timeout_sec);
   client_->set_write_timeout(timeout_sec);
 
 #ifdef CPPHTTPLIB_OPENSSL_SUPPORT
+  spdlog::debug("SSL support enabled");
   client_->enable_server_certificate_verification(true);
+#else
+  spdlog::warn("SSL support NOT enabled");
 #endif
 }
 
@@ -45,14 +52,17 @@ HttpClient::Response HttpClient::post(const std::string &endpoint,
       httplib_headers.emplace(key, value);
     }
 
+    spdlog::debug("POST request to: {}{}", base_url_, endpoint);
+    spdlog::debug("Request body size: {} bytes", data.dump().length());
+
     auto result = client_->Post(endpoint, httplib_headers, data.dump(),
                                 "application/json");
 
     if (!result) {
-      auto err = httplib::to_string(result.error());
-      std::cout << "[DEBUG] HTTP Post failed: " << err << "\n";
-      std::cout << "[DEBUG] URL: " << base_url_ << endpoint << "\n";
-      return {0, "", {}, false, "Connection failed: " + err};
+      std::string error_msg = "Connection failed to " + base_url_ + endpoint;
+      spdlog::error("{}", error_msg);
+      spdlog::debug("Failed to connect to: {}{}", base_url_, endpoint);
+      return {0, "", {}, false, error_msg};
     }
 
     Response response;
@@ -84,13 +94,15 @@ HttpClient::Response HttpClient::get(const std::string &endpoint,
       httplib_headers.emplace(key, value);
     }
 
+    spdlog::debug("GET request to: {}{}", base_url_, endpoint);
+
     auto result = client_->Get(endpoint, httplib_headers);
 
     if (!result) {
-      auto err = httplib::to_string(result.error());
-      std::cout << "[DEBUG] HTTP Post failed: " << err << "\n";
-      std::cout << "[DEBUG] URL: " << base_url_ << endpoint << "\n";
-      return {0, "", {}, false, "Connection failed: " + err};
+      std::string error_msg = "Connection failed to " + base_url_ + endpoint;
+      spdlog::error("{}", error_msg);
+      spdlog::debug("Failed to connect to: {}{}", base_url_, endpoint);
+      return {0, "", {}, false, error_msg};
     }
 
     Response response;
@@ -165,7 +177,7 @@ void HttpClient::parse_sse_stream(const std::string &data,
           callback(content, false);
         }
       } catch (const nlohmann::json::exception &e) {
-        std::cout << "[DEBUG] Failed to parse SSE JSON: " << e.what() << "\n";
+        spdlog::debug("Failed to parse SSE JSON: {}", e.what());
       }
     }
   }
@@ -184,8 +196,7 @@ HttpClient::make_request_with_retry(std::function<Response()> request_fn) {
 
     if (attempt < retry_count_ - 1) {
       size_t delay = retry_delay_ms_ * (1 << attempt);
-      std::cout << "[DEBUG] Request failed, retrying in " << delay
-                << " ms...\n";
+      spdlog::debug("Request failed, retrying in {} ms...", delay);
       std::this_thread::sleep_for(std::chrono::milliseconds(delay));
     }
   }
@@ -195,6 +206,11 @@ HttpClient::make_request_with_retry(std::function<Response()> request_fn) {
 
 void HttpClient::set_bearer_token(const std::string &token) {
   bearer_token_ = token;
+  if (!token.empty()) {
+    spdlog::debug("Bearer token set (length: {})", token.length());
+  } else {
+    spdlog::warn("Bearer token is empty!");
+  }
 }
 
 void HttpClient::set_timeout(size_t seconds) {

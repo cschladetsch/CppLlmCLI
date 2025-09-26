@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include "utils/logger.hpp"
 
 namespace llm {
 
@@ -17,7 +18,7 @@ bool Config::load_from_file(const std::string &filename) {
   try {
     std::ifstream file(expand_path(filename));
     if (!file.is_open()) {
-      std::cout << "[DEBUG] Config file not found: " << filename << "\n";
+      spdlog::debug("Config file not found: {}", filename);
       return false;
     }
 
@@ -25,10 +26,10 @@ bool Config::load_from_file(const std::string &filename) {
     file >> j;
     from_json(j);
 
-    std::cout << "[INFO] Config loaded from: " << filename << "\n";
+    spdlog::info("Config loaded from: {}", filename);
     return true;
   } catch (const std::exception &e) {
-    std::cout << "[ERROR] Error loading config: " << e.what() << "\n";
+    spdlog::error("Error loading config: {}", e.what());
     return false;
   }
 }
@@ -40,15 +41,15 @@ bool Config::save_to_file(const std::string &filename) const {
 
     std::ofstream file(file_path);
     if (!file.is_open()) {
-      std::cout << "[ERROR] Failed to create config file: " << filename << "\n";
+      spdlog::error("Failed to create config file: {}", filename);
       return false;
     }
 
     file << to_json().dump(2);
-    std::cout << "[INFO] Config saved to: " << filename << "\n";
+    spdlog::info("Config saved to: {}", filename);
     return true;
   } catch (const std::exception &e) {
-    std::cout << "[ERROR] Error saving config: " << e.what() << "\n";
+    spdlog::error("Error saving config: {}", e.what());
     return false;
   }
 }
