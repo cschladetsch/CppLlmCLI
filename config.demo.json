@@ -29,6 +29,25 @@
       "temperature": 0.7,
       "max_tokens": 2048
     },
+    "openai": {
+      "api_key": "your-openai-api-key-here",
+      "api_url": "https://api.openai.com/v1",
+      "models": [
+        {
+          "id": "gpt-4-turbo-preview",
+          "name": "GPT-4 Turbo",
+          "context_length": 128000,
+          "default": true
+        },
+        {
+          "id": "gpt-3.5-turbo",
+          "name": "GPT-3.5 Turbo",
+          "context_length": 16385
+        }
+      ],
+      "temperature": 0.7,
+      "max_tokens": 4096
+    },
     "anthropic": {
       "api_key": "your-anthropic-api-key-here",
       "api_url": "https://api.anthropic.com/v1",
