@@ -3,12 +3,14 @@ cmake_minimum_required(VERSION 3.20)
 include(GoogleTest)
 
 set(TEST_SOURCES_COMMON
-    ../src/http/http_client.cpp
     ../src/llm/groq_service.cpp
     ../src/models/conversation.cpp
     ../src/utils/config.cpp
     ../src/repl/repl.cpp
 )
+
+# Use unified HTTP client for all platforms
+list(APPEND TEST_SOURCES_COMMON ../src/http/unified_http_client.cpp)
 
 set(TEST_INCLUDES
     ${CMAKE_CURRENT_SOURCE_DIR}/../src
@@ -27,9 +29,14 @@ target_link_libraries(test_utils PUBLIC
     gtest
     gmock
     nlohmann_json
-    httplib
     fmt
+    spdlog::spdlog
 )
+
+# Link httplib only on non-Windows platforms
+if(NOT WIN32)
+    target_link_libraries(test_utils PUBLIC httplib)
+endif()
 
 # Unit Tests
 file(GLOB_RECURSE UNIT_TEST_SOURCES "unit/*.cpp")
@@ -41,14 +48,19 @@ if(UNIT_TEST_SOURCES)
         gtest_main
         gmock_main
         nlohmann_json
-        httplib
         CLI11
         fmt
+        spdlog::spdlog
         Threads::Threads
     )
 
+    # Link httplib only on non-Windows platforms
+    if(NOT WIN32)
+        target_link_libraries(unit_tests PRIVATE httplib)
+    endif()
+
     if(WIN32)
-        target_link_libraries(unit_tests PRIVATE ws2_32)
+        target_link_libraries(unit_tests PRIVATE ws2_32 winhttp)
     endif()
 
     gtest_discover_tests(unit_tests)
@@ -64,14 +76,19 @@ if(INTEGRATION_TEST_SOURCES)
         gtest_main
         gmock_main
         nlohmann_json
-        httplib
         CLI11
         fmt
+        spdlog::spdlog
         Threads::Threads
     )
 
+    # Link httplib only on non-Windows platforms
+    if(NOT WIN32)
+        target_link_libraries(integration_tests PRIVATE httplib)
+    endif()
+
     if(WIN32)
-        target_link_libraries(integration_tests PRIVATE ws2_32)
+        target_link_libraries(integration_tests PRIVATE ws2_32 winhttp)
     endif()
 
     gtest_discover_tests(integration_tests)
@@ -87,14 +104,19 @@ if(FUNCTIONAL_TEST_SOURCES)
         gtest_main
         gmock_main
         nlohmann_json
-        httplib
         CLI11
         fmt
+        spdlog::spdlog
         Threads::Threads
     )
 
+    # Link httplib only on non-Windows platforms
+    if(NOT WIN32)
+        target_link_libraries(functional_tests PRIVATE httplib)
+    endif()
+
     if(WIN32)
-        target_link_libraries(functional_tests PRIVATE ws2_32)
+        target_link_libraries(functional_tests PRIVATE ws2_32 winhttp)
     endif()
 
     gtest_discover_tests(functional_tests)

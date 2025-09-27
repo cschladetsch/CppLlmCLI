@@ -1,6 +1,9 @@
 #include <gtest/gtest.h>
+#include <gmock/gmock.h>
 #include "models/conversation.hpp"
 #include "utils/test_helpers.hpp"
+
+using ::testing::HasSubstr;
 
 using namespace llm;
 using namespace llm::test;

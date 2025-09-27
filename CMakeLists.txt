@@ -45,12 +45,8 @@ set(SOURCES
     src/models/conversation.cpp
 )
 
-# Use native Windows HTTP client on Windows, otherwise use httplib
-if(WIN32)
-    list(APPEND SOURCES src/http/windows_http_client.cpp)
-else()
-    list(APPEND SOURCES src/http/http_client.cpp)
-endif()
+# Use unified HTTP client for all platforms
+list(APPEND SOURCES src/http/unified_http_client.cpp)
 
 set(HEADERS
     src/repl/repl.hpp
@@ -100,12 +96,12 @@ install(FILES config.example.json
     DESTINATION etc/${PROJECT_NAME}
 )
 
-# Temporarily disable tests for formatting and linting
-# enable_testing()
+# Enable testing
+enable_testing()
 # Add GTest dependency
-# include(GoogleTest)
+include(GoogleTest)
 # Include test directory
-# add_subdirectory(tests)
+add_subdirectory(tests)
 
 add_custom_target(format
     COMMAND clang-format -i ${SOURCES} ${HEADERS}

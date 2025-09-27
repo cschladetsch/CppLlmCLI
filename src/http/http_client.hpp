@@ -8,7 +8,7 @@
 #include <optional>
 #include <string>
 
-#ifndef WIN32
+#if !defined(_WIN32) && !defined(_WIN64)
 #include <httplib.h>
 #endif
 
