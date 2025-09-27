@@ -26,6 +26,7 @@ private:
     HINTERNET hSession = nullptr;
     HINTERNET hConnect = nullptr;
     std::string host_;
+    std::string base_path_;
     int port_;
     bool is_https_;
     std::string bearer_token_;
@@ -56,6 +57,18 @@ public:
             host_ = url.substr(0, path_pos);
         } else {
             host_ = url;
+        }
+
+        // Extract base path
+        if (path_pos != std::string::npos) {
+            if (port_pos != std::string::npos && port_pos > path_pos) {
+                // Port comes after path (shouldn't happen in URLs but handle it)
+                base_path_ = url.substr(path_pos);
+            } else {
+                base_path_ = url.substr(path_pos);
+            }
+        } else {
+            base_path_ = "";
         }
 
         // Initialize WinHTTP
@@ -93,10 +106,13 @@ public:
     HttpClient::Response get(const std::string& path) {
         HttpClient::Response response;
 
+        // Combine base path with requested path
+        std::string full_path = base_path_ + path;
+
         // Convert path to wide string
-        int path_size = MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, nullptr, 0);
+        int path_size = MultiByteToWideChar(CP_UTF8, 0, full_path.c_str(), -1, nullptr, 0);
         std::vector<wchar_t> wpath(path_size);
-        MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, wpath.data(), path_size);
+        MultiByteToWideChar(CP_UTF8, 0, full_path.c_str(), -1, wpath.data(), path_size);
 
         // Create request
         HINTERNET hRequest = WinHttpOpenRequest(hConnect, L"GET", wpath.data(),
@@ -188,10 +204,13 @@ public:
     HttpClient::Response post(const std::string& path, const std::string& data) {
         HttpClient::Response response;
 
+        // Combine base path with requested path
+        std::string full_path = base_path_ + path;
+
         // Convert path to wide string
-        int path_size = MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, nullptr, 0);
+        int path_size = MultiByteToWideChar(CP_UTF8, 0, full_path.c_str(), -1, nullptr, 0);
         std::vector<wchar_t> wpath(path_size);
-        MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, wpath.data(), path_size);
+        MultiByteToWideChar(CP_UTF8, 0, full_path.c_str(), -1, wpath.data(), path_size);
 
         // Create request
         HINTERNET hRequest = WinHttpOpenRequest(hConnect, L"POST", wpath.data(),
