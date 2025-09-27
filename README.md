@@ -1,6 +1,6 @@
-# CppAiCli
+# CppMultiChat
 
-A modern C++20 REPL (Read-Eval-Print-Loop) for interacting with various Large Language Model providers including Groq, OpenAI, Anthropic, and Ollama.
+A modern C++20 REPL (Read-Eval-Print-Loop) for interacting with multiple Large Language Model providers including Groq, OpenAI, Anthropic, xAI (Grok), Google (Gemini), and Ollama.
 
 ## Architecture
 
@@ -14,13 +14,17 @@ graph TD
     D --> F[Groq Service]
     D --> G[OpenAI Service]
     D --> H[Anthropic Service]
-    D --> I[Ollama Service]
+    D --> I[xAI Service]
+    D --> J[Google Service]
+    D --> K[Ollama Service]
 
-    E --> J[External APIs]
+    E --> L[External APIs]
     F --> E
     G --> E
     H --> E
-    I --> K[Local Ollama]
+    I --> E
+    J --> E
+    K --> M[Local Ollama]
 
     L[Config Manager] --> D
     M[Conversation History] --> B
@@ -30,13 +34,14 @@ graph TD
 
 ## Features
 
-- Support for multiple LLM providers (Groq, OpenAI, Anthropic, Ollama)
+- Support for multiple LLM providers (Groq, OpenAI, Anthropic, xAI/Grok, Google/Gemini, Ollama)
 - Interactive terminal interface with color support
 - Streaming response support
 - Conversation history management
 - Configurable models and parameters
 - Comprehensive logging with spdlog
-- Cross-platform support (Linux, macOS, Windows with WSL)
+- Cross-platform support (Linux, macOS, Windows)
+- Unified HTTP client implementation with platform-specific optimizations
 
 ## Prerequisites
 
@@ -50,8 +55,8 @@ graph TD
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/CppAiCli.git
-cd CppAiCli
+git clone https://github.com/cschladetsch/CppMultiChat.git
+cd CppMultiChat
 git submodule update --init --recursive
 ```
 
@@ -70,9 +75,47 @@ Edit `config.json` and add your API keys for the providers you want to use:
   "providers": {
     "groq": {
       "api_key": "YOUR_GROQ_API_KEY_HERE",
-      ...
+      "api_url": "https://api.groq.com/openai/v1",
+      "model": "llama-3.3-70b-versatile",
+      "temperature": 0.7,
+      "max_tokens": 8000
+    },
+    "openai": {
+      "api_key": "YOUR_OPENAI_API_KEY_HERE",
+      "api_url": "https://api.openai.com/v1",
+      "model": "gpt-4-turbo-preview",
+      "temperature": 0.7,
+      "max_tokens": 4096
+    },
+    "anthropic": {
+      "api_key": "YOUR_ANTHROPIC_API_KEY_HERE",
+      "api_url": "https://api.anthropic.com/v1",
+      "model": "claude-3-5-sonnet-20241022",
+      "temperature": 0.7,
+      "max_tokens": 4096
+    },
+    "xai": {
+      "api_key": "YOUR_XAI_API_KEY_HERE",
+      "api_url": "https://api.x.ai/v1",
+      "model": "grok-beta",
+      "temperature": 0.7,
+      "max_tokens": 4096
+    },
+    "google": {
+      "api_key": "YOUR_GOOGLE_API_KEY_HERE",
+      "api_url": "https://generativelanguage.googleapis.com/v1beta",
+      "model": "gemini-2.0-flash",
+      "temperature": 0.7,
+      "max_tokens": 8192
+    },
+    "ollama": {
+      "model": "llama3.1",
+      "temperature": 0.7,
+      "max_tokens": 2048,
+      "api_url": "http://localhost:11434"
     }
-  }
+  },
+  "provider": "groq"
 }
 ```
 
@@ -117,7 +160,7 @@ See `config.example.json` for a complete example.
 
 ```
 -c, --config    Configuration file path (default: config.json)
--p, --provider  LLM provider (groq, openai, anthropic, ollama)
+-p, --provider  LLM provider (groq, openai, anthropic, xai, google, ollama)
 -m, --model     Model to use
 -k, --api-key   API key (not recommended - use config file)
 -t, --temperature Temperature (0.0 - 2.0)
@@ -133,6 +176,8 @@ You can also set API keys via environment variables:
 - `GROQ_API_KEY` - Groq API key
 - `OPENAI_API_KEY` - OpenAI API key
 - `ANTHROPIC_API_KEY` - Anthropic API key
+- `XAI_API_KEY` - xAI (Grok) API key
+- `GOOGLE_API_KEY` - Google (Gemini) API key
 
 ## Usage
 
@@ -154,15 +199,15 @@ Once in the REPL, you can use the following commands:
 ```
 LLM REPL v1.0.0
 Provider: groq
-Model: llama-3.1-70b-versatile
+Model: llama-3.3-70b-versatile
 Type '/help' for commands or '/exit' to quit.
 
 You> Tell me about quantum computing
 
 AI> Quantum computing is a revolutionary computing paradigm that leverages quantum mechanical phenomena...
 
-You> /model gemma2-9b-it
-[INFO] Switched to model: gemma2-9b-it
+You> /provider anthropic
+[INFO] Switched to provider: anthropic (claude-3-5-sonnet-20241022)
 
 You> Can you explain it more simply?
 
@@ -173,16 +218,24 @@ AI> Sure! Think of quantum computing like this...
 
 ### Groq
 - Fast inference with open-source models
-- Models: Llama 3.1 (70B, 8B), Mixtral, Gemma 2
+- Models: Llama 3.3 (70B), Llama 3.1 (70B, 8B), Mixtral, Gemma 2
 - Get API key from: https://console.groq.com
 
 ### OpenAI
-- GPT-4 and GPT-3.5 models
+- GPT-4 Turbo and GPT-3.5 models
 - Get API key from: https://platform.openai.com
 
 ### Anthropic
-- Claude 3 models (Opus, Sonnet)
+- Claude 3.5 Sonnet, Claude 3 models (Opus, Haiku)
 - Get API key from: https://console.anthropic.com
+
+### xAI (Grok)
+- Grok Beta model
+- Get API key from: https://console.x.ai
+
+### Google (Gemini)
+- Gemini 2.0 Flash, Gemini 1.5 Pro models
+- Get API key from: https://aistudio.google.com
 
 ### Ollama
 - Local model execution
@@ -194,18 +247,22 @@ AI> Sure! Think of quantum computing like this...
 ### Project Structure
 
 ```
-CppAiCli/
+CppMultiChat/
 ├── src/
 │   ├── main.cpp           # Application entry point
 │   ├── repl/              # REPL implementation
 │   ├── llm/               # LLM service implementations
-│   ├── http/              # HTTP client
+│   ├── http/              # HTTP client (unified implementation)
 │   ├── models/            # Data models
 │   └── utils/             # Utility functions
 ├── external/              # External dependencies
-│   └── spdlog/           # Logging library (git submodule)
+│   ├── spdlog/           # Logging library (git submodule)
+│   ├── nlohmann_json/    # JSON library
+│   ├── httplib/          # HTTP library
+│   └── CLI11/            # Command line parser
 ├── tests/                 # Unit and integration tests
 ├── config.example.json    # Example configuration
+├── config.demo.json      # Demo configuration
 └── CMakeLists.txt        # CMake build configuration
 ```
 
